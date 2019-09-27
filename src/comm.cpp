@@ -1,19 +1,14 @@
-#include <mpi.h>
-#include "math.h"
-
-#include "pointers.h"
-#include "brain.h"
+#include "virtualbrain.h"
 #include "comm.h"
 
 using namespace std;
-using namespace brain_NS;
 
 /* ---------------------------------------------------------------------- */
-Comm::Comm() {
+Comm::Comm(VirtualBrain *brn) {
   b_itr = 0;
   b_dim.assign("none");
 
-  comm_size = 1 + num_agents;
+  comm_size = 1 + brn->get_num_agents();
 }
 
 /* ----------------------------------------------------------------------*/
@@ -28,7 +23,7 @@ Comm::~Comm() {
  * For each partition: find boundaries xlo[i] and xhi[i],
  * and its communicating neighbor partitions.
  * ----------------------------------------------------------------------*/
-void Comm::partition(Brain *brn) {
+void Comm::partition(VirtualBrain *brn) {
   double pos[3],POS[3],DX[3];
 
   auto &npart = brn->npart;
@@ -79,7 +74,7 @@ void Comm::partition(Brain *brn) {
  * Balance the partition loop sizes among all the partitions in a specified
  * dimension, dim;
  * ----------------------------------------------------------------------*/
-void Comm::balance(Brain *brn) {
+void Comm::balance(VirtualBrain *brn) {
   int b_flag;
 
   if (!b_dim.compare("x"))
@@ -254,7 +249,7 @@ void Comm::balance(Brain *brn) {
  * set maximum buffer size for communications, and the bufer size for each
  * communication.
  * ----------------------------------------------------------------------*/
-void Comm::comm_init(Brain *brn) {
+void Comm::comm_init(VirtualBrain *brn) {
   auto &nvl = brn->nvl;
 
   // set buffer size for each direction of communication
@@ -277,7 +272,7 @@ void Comm::comm_init(Brain *brn) {
 }
 
 /* ----------------------------------------------------------------------*/
-void Comm::allocations(Brain *brn) {
+void Comm::allocations(VirtualBrain *brn) {
   send_buf.clear();
   send_buf.resize(max_buf_size);
   recv_buf.clear();
@@ -288,7 +283,7 @@ void Comm::allocations(Brain *brn) {
 /* ----------------------------------------------------------------------
  * Find the rank of a partition, with coordinates i,j,k
  * ----------------------------------------------------------------------*/
-int Comm::find_me(Brain *brn, int i, int j, int k) {
+int Comm::find_me(VirtualBrain *brn, int i, int j, int k) {
   auto &npart = brn->npart;
 
   if (i < 0 || i >= npart[0])
@@ -306,7 +301,7 @@ int Comm::find_me(Brain *brn, int i, int j, int k) {
  * Forward communication: communicate the properties from the local voxels
  * to the ghost voxels of neighboring partitions.
  * ----------------------------------------------------------------------*/
-void Comm::forward_comm(Brain *brn) {
+void Comm::forward_comm(VirtualBrain *brn) {
   int ctag;
   MPI_Request req_send,req_recv;
   MPI_Comm world = brn->world;
@@ -425,7 +420,7 @@ void Comm::forward_comm(Brain *brn) {
 /* ----------------------------------------------------------------------
  * Packing the buffer for forward communication
  * ----------------------------------------------------------------------*/
-void Comm::forward_pack(Brain *brn, int flag) {
+void Comm::forward_pack(VirtualBrain *brn, int flag) {
   auto &nvl = brn->nvl;
 
   tagint c = 0;
@@ -437,8 +432,8 @@ void Comm::forward_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->agent[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_agent(ag_id,vid);
       }
   }
 
@@ -449,8 +444,8 @@ void Comm::forward_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->agent[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_agent(ag_id,vid);
       }
   }
 
@@ -461,8 +456,8 @@ void Comm::forward_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->agent[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_agent(ag_id,vid);
       }
   }
 
@@ -473,8 +468,8 @@ void Comm::forward_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->agent[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_agent(ag_id,vid);
       }
   }
 
@@ -485,8 +480,8 @@ void Comm::forward_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->agent[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_agent(ag_id,vid);
       }
   }
 
@@ -497,8 +492,8 @@ void Comm::forward_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->agent[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_agent(ag_id,vid);
       }
   }
 
@@ -507,7 +502,7 @@ void Comm::forward_pack(Brain *brn, int flag) {
 /* ----------------------------------------------------------------------
  * Unpacking the buffer for forward communication
  * ----------------------------------------------------------------------*/
-void Comm::forward_unpack(Brain *brn, int flag) {
+void Comm::forward_unpack(VirtualBrain *brn, int flag) {
   auto &nvl = brn->nvl;
 
   tagint c = 0;
@@ -519,8 +514,8 @@ void Comm::forward_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->agent[ag_id][vid] = recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_agent(ag_id,vid,recv_buf[c++],0);
       }
   }
 
@@ -531,8 +526,8 @@ void Comm::forward_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->agent[ag_id][vid] = recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_agent(ag_id,vid,recv_buf[c++],0);
       }
   }
 
@@ -543,8 +538,8 @@ void Comm::forward_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->agent[ag_id][vid] = recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_agent(ag_id,vid,recv_buf[c++],0);
       }
   }
 
@@ -555,8 +550,8 @@ void Comm::forward_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->agent[ag_id][vid] = recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_agent(ag_id,vid,recv_buf[c++],0);
       }
   }
 
@@ -567,8 +562,8 @@ void Comm::forward_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->agent[ag_id][vid] = recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_agent(ag_id,vid,recv_buf[c++],0);
       }
   }
 
@@ -579,8 +574,8 @@ void Comm::forward_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->agent[ag_id][vid] = recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_agent(ag_id,vid,recv_buf[c++],0);
       }
   }
 
@@ -590,7 +585,7 @@ void Comm::forward_unpack(Brain *brn, int flag) {
  * Reverse communication: communicate the properties from the ghost voxels
  * to the local voxels of neighboring partitions.
  * ----------------------------------------------------------------------*/
-void Comm::reverse_comm(Brain *brn) {
+void Comm::reverse_comm(VirtualBrain *brn) {
   int ctag;
   MPI_Request req_send,req_recv;
   MPI_Comm world = brn->world;
@@ -653,7 +648,7 @@ void Comm::reverse_comm(Brain *brn) {
 /* ----------------------------------------------------------------------
  * Packing the buffer for reverse communication
  * ----------------------------------------------------------------------*/
-void Comm::reverse_pack(Brain *brn, int flag) {
+void Comm::reverse_pack(VirtualBrain *brn, int flag) {
   auto &nvl = brn->nvl;
 
   tagint c = 0;
@@ -665,8 +660,8 @@ void Comm::reverse_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->deriv[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_deriv(ag_id,vid);
       }
   }
 
@@ -677,8 +672,8 @@ void Comm::reverse_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->deriv[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_deriv(ag_id,vid);
       }
   }
 
@@ -689,8 +684,8 @@ void Comm::reverse_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->deriv[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_deriv(ag_id,vid);
       }
   }
 
@@ -701,8 +696,8 @@ void Comm::reverse_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->deriv[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_deriv(ag_id,vid);
       }
   }
 
@@ -713,8 +708,8 @@ void Comm::reverse_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->deriv[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_deriv(ag_id,vid);
       }
   }
 
@@ -725,8 +720,8 @@ void Comm::reverse_pack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         send_buf[c++] = ubuf(brn->type[vid]).d;
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          send_buf[c++] = brn->deriv[ag_id][vid];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          send_buf[c++] = brn->get_deriv(ag_id,vid);
       }
   }
 
@@ -735,7 +730,7 @@ void Comm::reverse_pack(Brain *brn, int flag) {
 /* ----------------------------------------------------------------------
  * Unpacking the buffer for reverse communication
  * ----------------------------------------------------------------------*/
-void Comm::reverse_unpack(Brain *brn, int flag) {
+void Comm::reverse_unpack(VirtualBrain *brn, int flag) {
   auto &nvl = brn->nvl;
 
   tagint c = 0;
@@ -747,8 +742,8 @@ void Comm::reverse_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->deriv[ag_id][vid] += recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_deriv(ag_id,vid,recv_buf[c++],1);
       }
   }
 
@@ -759,8 +754,8 @@ void Comm::reverse_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->deriv[ag_id][vid] += recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_deriv(ag_id,vid,recv_buf[c++],1);
       }
   }
 
@@ -771,8 +766,8 @@ void Comm::reverse_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->deriv[ag_id][vid] += recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_deriv(ag_id,vid,recv_buf[c++],1);
       }
   }
 
@@ -783,8 +778,8 @@ void Comm::reverse_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->deriv[ag_id][vid] += recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_deriv(ag_id,vid,recv_buf[c++],1);
       }
   }
 
@@ -795,8 +790,8 @@ void Comm::reverse_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->deriv[ag_id][vid] += recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_deriv(ag_id,vid,recv_buf[c++],1);
       }
   }
 
@@ -807,8 +802,8 @@ void Comm::reverse_unpack(Brain *brn, int flag) {
         int vid = brn->find_id(i,j,k);
 
         brn->type[vid] = static_cast<int>( ubuf(recv_buf[c++]).i );
-        for (int ag_id=0; ag_id<num_agents; ag_id++)
-          brn->deriv[ag_id][vid] += recv_buf[c++];
+        for (int ag_id=0; ag_id<brn->get_num_agents(); ag_id++)
+          brn->set_deriv(ag_id,vid,recv_buf[c++],1);
       }
   }
 

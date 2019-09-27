@@ -1,7 +1,10 @@
 #ifndef POINTERS_H
 #define POINTERS_H
 
+#include <mpi.h>
+#include <cmath>
 #include <vector>
+
 #include "stdio.h"
 #include "stdlib.h"
 #include <iostream>
@@ -10,11 +13,17 @@
 #include <string>
 #include <sstream>
 
+#include "nifti1.h"
+#include "nifti1_io.h"
+#include "znzlib.h"
+
+#include <stdint.h>
+
 #include <inttypes.h>
 
 using namespace std;
 
-namespace brain_NS {
+#define PI 3.141592653589793
 
 /// in case number of voxels is more than 2 bilions
 typedef int64_t tagint;
@@ -40,21 +49,13 @@ const string flog = "log.braimmu";
 
 enum{XLO,XHI,YLO,YHI,ZLO,ZHI};
 
-//// model
-/// mic, ast, neu; number of microglia, atrocytes, and neurons at each voxel
-/// ilb1, il6, tnf; concentration of cytokines at each voxel
-/// sAb, fAb; concentration of soluble and fibrillar Amyloid beta at each voxel
-enum{mic = 0,neu,sAb,fAb,ast,phr,tau,cir, num_agents}; // ast,ilb1,il6,tnf
-const string ag_str[num_agents] = {"mic","neu","sAb","fAb","ast","phr","tau","cir"}; // "ilb1","il6","tnf"
-
 /// voxel tissue types
-// EMP : Empty space
-// CSF : Cerebrospinal fluid
-// WM : White matter parenchyma
-// GM : Grey matter parenchyma
+/* EMP : Empty space
+ * CSF : Cerebrospinal fluid
+ * WM : White matter parenchyma
+ * GM : Grey matter parenchyma */
 enum{EMP = 0,CSF,WM,GM, num_types};
 
-const int ndim = 3; // number of dimensions (3D)
-}
+const int ndim = 3; // number of dimensions
 
 #endif

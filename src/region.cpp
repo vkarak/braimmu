@@ -1,13 +1,7 @@
-#include <mpi.h>
-#include <vector>
-#include "math.h"
-
-#include "pointers.h"
-#include "brain.h"
+#include "virtualbrain.h"
 #include "region.h"
 
 using namespace std;
-using namespace brain_NS;
 
 /* ---------------------------------------------------------------------- */
 Region::Region() {
@@ -26,7 +20,7 @@ Region::~Region() {
 /* ----------------------------------------------------------------------
  * Apply all the regions, respectively in the order of input
  * ----------------------------------------------------------------------*/
-void Region::apply_regions(Brain *brn) {
+void Region::apply_regions(VirtualBrain *brn) {
   for (int i=0; i<reg_arg.size(); i++) {
     int narg = reg_arg[i].size();
 
@@ -64,15 +58,13 @@ void Region::apply_regions(Brain *brn) {
 }
 
 /* ----------------------------------------------------------------------*/
-int Region::sphere(Brain *brn, vector<string> arg) {
+int Region::sphere(VirtualBrain *brn, vector<string> arg) {
   int narg = arg.size();
 
   int nall = brn->nall;
 
   auto &tissue = brn->tissue;
   auto &type = brn->type;
-
-  auto &agent = brn->agent;
 
   auto &x = brn->x;
 
@@ -110,8 +102,8 @@ int Region::sphere(Brain *brn, vector<string> arg) {
       }
     }
 
-    else if (brn->input->find_agent(arg[c]) >= 0) {
-      int ag_id = brn->input->find_agent(arg[c]);
+    else if (brn->find_agent(arg[c]) >= 0) {
+      int ag_id = brn->find_agent(arg[c]);
       double val_one = stof(arg[c+1]);
       for (int i=0; i<nall; i++) {
         double delx = x[0][i] - center[0];
@@ -121,9 +113,9 @@ int Region::sphere(Brain *brn, vector<string> arg) {
         double rsq = delx*delx + dely*dely + delz*delz;
 
         if (in && rsq <= radius2)
-          agent[ag_id][i] = val_one;
+          brn->set_agent(ag_id,i,val_one,0);
         else if (!in && rsq > radius2)
-          agent[ag_id][i] = val_one;
+          brn->set_agent(ag_id,i,val_one,0);
       }
     }
 
@@ -137,7 +129,7 @@ int Region::sphere(Brain *brn, vector<string> arg) {
 }
 
 /* ----------------------------------------------------------------------*/
-int Region::block(Brain *brn, vector<string> arg) {
+int Region::block(VirtualBrain *brn, vector<string> arg) {
   int narg = arg.size();
 
   int nall = brn->nall;
@@ -146,8 +138,6 @@ int Region::block(Brain *brn, vector<string> arg) {
   auto &type = brn->type;
 
   auto &x = brn->x;
-
-  auto &agent = brn->agent;
 
   double blo[3],bhi[3];
   blo[0] = stof(arg[1]);
@@ -178,16 +168,16 @@ int Region::block(Brain *brn, vector<string> arg) {
       }
     }
 
-    else if (brn->input->find_agent(arg[c]) >= 0) {
-      int ag_id = brn->input->find_agent(arg[c]);
+    else if (brn->find_agent(arg[c]) >= 0) {
+      int ag_id = brn->find_agent(arg[c]);
       double val_one = stoi(arg[c+1]);
       for (int i=0; i<nall; i++) {
         if (x[0][i] >= blo[0] && x[1][i] >= blo[1] && x[2][i] >= blo[2] &&
             x[0][i] <= bhi[0] && x[1][i] <= bhi[1] && x[2][i] <= bhi[2]) {
           if (in)
-            agent[ag_id][i] = val_one;
+            brn->set_agent(ag_id,i,val_one,0);
         } else if (!in)
-          agent[ag_id][i] = val_one;
+          brn->set_agent(ag_id,i,val_one,0);
       }
     }
 
